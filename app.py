@@ -1,124 +1,100 @@
-# import openai
-# import streamlit as st
-# import os
-
-# # Load the API key from a separate file
-# openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# # Set up the OpenAI GPT-3 model
-# model_engine = "davinci"
-
-# # Define the Streamlit app
-# def app():
-#     st.title("ChatGPT")
-#     st.write("Ask me anything and I'll do my best to help!")
-#     user_input = st.text_input("You:")
-#     if user_input:
-#         # Generate a response using the OpenAI GPT-3 model
-#         prompt = f"Q: {user_input}\nA:"
-#         response = openai.Completion.create(
-#             engine=model_engine,
-#             prompt=prompt,
-#             max_tokens=1024,
-#             n=1,
-#             stop=None,
-#             temperature=0.7,
-#         )
-#         st.text_area("ChatGPT:", response.choices[0].text.strip())
-
-# # Run the app
-# if __name__ == "__main__":
-#     app()
-
-
-# A bare bones UI for the Open AI Chat Completion used in ChatGPT
-# Created by Adam Tomkins
-
-import openai
 import streamlit as st
-
-# Set up Session State
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-if "primer" not in st.session_state:
-    st.session_state["primer"] = "You are a friendly and helpful assistant."
-if "context_length" not in st.session_state:
-    st.session_state["context_length"] = 10
+import openai
+from datetime import datetime
+from streamlit.components.v1 import html
+import webbrowser
 
 
-def main():
-    # Initialization your state messages
+st.set_page_config(page_title="ChatGPT App Demo")
 
-    st.sidebar.header("Settings")
+html_temp = """
+                <div style="background-color:{};padding:1px">
+                </div>
+                """
 
-    with st.sidebar:
-        # Allow the user to set their prompt
-        st.session_state.primer = st.text_area(
-            "Primer Message",
-            "You are a friendly and helpful assistant.",
+url = "https://shrimantasatpati.hashnode.dev/"
+
+with st.sidebar:
+    st.markdown("""
+    # About 
+    ChatGPT App Demo is a primitive tool built on GPT-3.5 to generate ideas on a given topic. This uses the model_engine text-davinci-003. 
+    """)
+    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"),unsafe_allow_html=True)
+    st.markdown("""
+    # How does it work
+    Simply enter the topic of interest in the text field below and ideas will be generated.
+    You can also download the output as txt.
+    """)
+    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"),unsafe_allow_html=True)
+    st.markdown("""
+    Made by [Shrimanta Satpati](https://shrimantasatpati.hashnode.dev/)
+    """,
+    unsafe_allow_html=True,
+    )
+    if st.button('SatpatAI'):
+        webbrowser.open_new_tab(url)
+
+
+input_text = None
+if 'output' not in st.session_state:
+    st.session_state['output'] = 0
+
+if st.session_state['output'] <=2:
+    st.markdown("""
+    # ChatGPT Demo
+    """)
+    input_text = st.text_input("What are you looking for today?", disabled=False)
+    st.session_state['output'] = st.session_state['output'] + 1
+
+hide="""
+<style>
+footer{
+	visibility: hidden;
+    position: relative;
+}
+.viewerBadge_container__1QSob{
+    visibility: hidden;
+}
+<style>
+"""
+st.markdown(hide, unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <style>
+        iframe[width="220"] {
+            position: fixed;
+            bottom: 60px;
+            right: 40px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+if input_text:
+    prompt = "What are you looking for today? "+str(input_text)
+    if prompt:
+        #openai.api_key = st.secrets["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"]
+        openai.api_key = "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"
+        #response = openai.Completion.create(engine="text-davinci-003", prompt=prompt, max_tokens=150)
+        #brainstorming_output = response['choices'][0]['text']
+        response = openai.Completion.create(engine="text-davinci-003",
+                                            # prompt="Correct this to standard English:\n\nShe no went to the market.",
+                                            prompt=prompt,
+                                            temperature=0,
+                                            top_p=1,
+                                            max_tokens=60,
+                                            frequency_penalty=0,
+                                            presence_penalty=0)
+        brainstorming_output = response.choices[0].text
+        today = datetime.today().strftime('%Y-%m-%d')
+        topic = "What are you looking for today? "+input_text+"\n@Date: "+str(today)+"\n"+brainstorming_output
+        
+        st.info(brainstorming_output)
+        filename = "ChatGPT_response"+str(today)+".txt"
+        btn = st.download_button(
+            label="Download txt",
+            data=topic,
+            file_name=filename
         )
-        st.session_state.context_length = st.slider(
-            "Context Message Length", min_value=1, max_value=50, value=10, step=1
-        )
 
-        # Allow Users to reset the memory
-        if st.button("Clear Chat"):
-            st.session_state.messages = []
-            st.info("Chat Memory Cleared")
-
-    # A place to draw the chat history
-    history = st.container()
-
-    with st.form("Chat"):
-        input = st.text_input("You:", "")
-        if st.form_submit_button():
-            st.session_state.messages.append({"role": "user", "content": input})
-
-            # Create an on the fly message stack
-            messages = [{"role": "system", "content": st.session_state.primer}]
-            messages.extend(
-                st.session_state.messages[-st.session_state.context_length :]
-            )
-
-            # Call the OpenAI API
-            r = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-            tokens = r["usage"]["total_tokens"]
-            cost = round((tokens / 1000) * 0.02, 3)
-            st.info(f"Message uses {tokens} tokens for a total cost of {cost} cents")
-
-            with st.expander("Result"):
-                st.info("Your Output Response")
-                st.write(r)
-
-            st.session_state.messages.append(
-                {"role": "assistant", "content": r["choices"][0]["message"]["content"]}
-            )
-
-    with history:
-        for i, message in enumerate(st.session_state.messages):
-            c1, c2 = st.columns([2, 10])
-            with c1:
-                st.write(message["role"])
-            with c2:
-                # Lets italisize the messages that are sent in the state
-                if (
-                    len(st.session_state.messages) - i
-                    < st.session_state.context_length + 1
-                ):
-                    st.markdown(f'_{message["content"]}_')
-                else:
-                    st.markdown(f'{message["content"]}')
-
-
-st.title("Open AI Chat GPT Demo")
-
-key = st.text_input("Your Open API Key", "sk...")
-if key == "sk...":
-    st.error("Please add a valid Open API Key")
-
-else:
-    openai.api_key = key
-    main()
-
-
-st.info("Created by Mohammad Wasiq")
