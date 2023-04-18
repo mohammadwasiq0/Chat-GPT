@@ -6,8 +6,7 @@ import os
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Set up the OpenAI GPT-3 model
-model_engine = "text-davinci-002"
-prompt = "Hello, how can I assist you today?"
+model_engine = "davinci"
 
 # Define the Streamlit app
 def app():
@@ -16,9 +15,10 @@ def app():
     user_input = st.text_input("You:")
     if user_input:
         # Generate a response using the OpenAI GPT-3 model
+        prompt = f"Q: {user_input}\nA:"
         response = openai.Completion.create(
             engine=model_engine,
-            prompt=prompt + user_input,
+            prompt=prompt,
             max_tokens=1024,
             n=1,
             stop=None,
