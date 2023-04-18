@@ -1,3 +1,7 @@
-openai
+#openai
+#streamlit
+#streamlit_chat
+
 streamlit
-streamlit_chat
+pyChatGPT 
+selenium
